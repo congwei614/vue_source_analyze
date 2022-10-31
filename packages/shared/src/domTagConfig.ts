@@ -1,5 +1,7 @@
 // These tag configs are shared between compiler-dom and runtime-dom, so they
 // must be extracted in shared to avoid creating a dependency between the two.
+// 这些标签配置在 compiler-dom 和 runtime-dom 之间共享，
+// 所以它们必须在 shared 中提取以避免在两者之间创建依赖关系。
 import { makeMap } from './makeMap'
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
@@ -15,6 +17,10 @@ const HTML_TAGS =
   'summary,template,blockquote,iframe,tfoot'
 
 // https://developer.mozilla.org/en-US/docs/Web/SVG/Element
+/**
+ * SVG标签内部使用的标签
+ *  example：<svg><a></a></svg>
+ */
 const SVG_TAGS =
   'svg,animate,animateMotion,animateTransform,circle,clipPath,color-profile,' +
   'defs,desc,discard,ellipse,feBlend,feColorMatrix,feComponentTransfer,' +
@@ -31,16 +37,22 @@ const VOID_TAGS =
   'area,base,br,col,embed,hr,img,input,link,meta,param,source,track,wbr'
 
 /**
+ * 除非在 `__DEV__` 标志后面，否则不要在运行时代码路径中使用。
+ *
  * Compiler only.
  * Do NOT use in runtime code paths unless behind `__DEV__` flag.
  */
 export const isHTMLTag = /*#__PURE__*/ makeMap(HTML_TAGS)
 /**
+ * 除非在 `__DEV__` 标志后面，否则不要在运行时代码路径中使用。
+ *
  * Compiler only.
  * Do NOT use in runtime code paths unless behind `__DEV__` flag.
  */
 export const isSVGTag = /*#__PURE__*/ makeMap(SVG_TAGS)
 /**
+ * 除非在 `__DEV__` 标志后面，否则不要在运行时代码路径中使用。
+ *
  * Compiler only.
  * Do NOT use in runtime code paths unless behind `__DEV__` flag.
  */

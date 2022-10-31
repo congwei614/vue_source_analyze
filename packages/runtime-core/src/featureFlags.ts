@@ -1,6 +1,14 @@
+/*
+ * @Author: Mr.Cong Wei
+ * @Date: 2022-10-31 20:48:25
+ * @LastEditTime: 2022-10-31 22:22:45
+ */
 import { getGlobalThis } from '@vue/shared'
 
 /**
+ * 这仅在 esm-bundler 构建中调用。
+ * 在创建渲染器时调用它，在 `baseCreateRenderer` 中，以便导入 runtime-core 没有副作用。
+ *
  * This is only called in esm-bundler builds.
  * It is called when a renderer is created, in `baseCreateRenderer` so that
  * importing runtime-core is side-effects free.

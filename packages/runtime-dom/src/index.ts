@@ -31,14 +31,22 @@ declare module '@vue/reactivity' {
   }
 }
 
+/**
+ * 渲染相关的一些配置，比如更新属性的方法，操作 DOM 的方法
+ */
 const rendererOptions = /*#__PURE__*/ extend({ patchProp }, nodeOps)
 
-// lazy create the renderer - this makes core renderer logic tree-shakable
-// in case the user only imports reactivity utilities from Vue.
 let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
+/**
+ * 延时创建渲染器，当用户只依赖响应式包的时候，
+ * 可以通过 tree-shaking 移除核心渲染逻辑相关的代码
+ *
+ * lazy create the renderer - this makes core renderer logic tree-shakable
+ * in case the user only imports reactivity utilities from Vue.
+ */
 function ensureRenderer() {
   return (
     renderer ||
@@ -55,6 +63,7 @@ function ensureHydrationRenderer() {
 }
 
 // use explicit type casts here to avoid import() calls in rolled-up d.ts
+// 在此处使用显式类型转换以避免在rolled-up的 d.ts 中调用 import()
 export const render = ((...args) => {
   ensureRenderer().render(...args)
 }) as RootRenderFunction<Element | ShadowRoot>
@@ -64,6 +73,7 @@ export const hydrate = ((...args) => {
 }) as RootHydrateFunction
 
 export const createApp = ((...args) => {
+  // 创建 app 对象
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {
@@ -72,6 +82,7 @@ export const createApp = ((...args) => {
   }
 
   const { mount } = app
+  // 重写 mount 方法
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
@@ -130,6 +141,12 @@ export const createSSRApp = ((...args) => {
   return app
 }) as CreateAppFunction<Element>
 
+/**
+ * dev only
+ *
+ * 注入 `isNativeTag` （是否是原生标签）.
+ * 这用于组件名称验证
+ */
 function injectNativeTagCheck(app: App) {
   // Inject `isNativeTag`
   // this is used for component name validation (dev only)
@@ -139,7 +156,12 @@ function injectNativeTagCheck(app: App) {
   })
 }
 
-// dev only
+//
+/**
+ * dev only
+ *
+ * ？？？
+ */
 function injectCompilerOptionsCheck(app: App) {
   if (isRuntimeOnly()) {
     const isCustomElement = app.config.isCustomElement

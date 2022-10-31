@@ -295,6 +295,7 @@ export function createAppAPI<HostElement>(
                 ` you need to unmount the previous app by calling \`app.unmount()\` first.`
             )
           }
+          // 创建根组件的 vnode
           const vnode = createVNode(
             rootComponent as ConcreteComponent,
             rootProps

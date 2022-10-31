@@ -275,6 +275,20 @@ export const queuePostRenderEffect = __FEATURE_SUSPENSE__
   : queuePostFlushCb
 
 /**
+ * createRenderer 函数接受两个通用参数：
+ * HostNode 和 HostElement，对应宿主环境中的 Node 和 Element 类型。
+ * 例如，对于 runtime-dom，HostNode 将是 DOM `Node` 接口，
+ * 而 HostElement 将是 DOM `Element` 接口。
+ *
+ * 自定义渲染器可以传入平台特定类型，如下所示：
+ *
+ * ``` js
+ * const { render, createApp } = createRenderer<Node, Element>({
+ *   patchProp,
+ *   ...nodeOps
+ * })
+ * ```
+ *
  * The createRenderer function accepts two generic arguments:
  * HostNode and HostElement, corresponding to Node and Element types in the
  * host environment. For example, for runtime-dom, HostNode would be the DOM
@@ -306,22 +320,25 @@ export function createHydrationRenderer(
 }
 
 // overload 1: no hydration
+// 过载 1: 非服务端渲染
 function baseCreateRenderer<
   HostNode = RendererNode,
   HostElement = RendererElement
 >(options: RendererOptions<HostNode, HostElement>): Renderer<HostElement>
 
 // overload 2: with hydration
+// 过载 2: 服务端渲染
 function baseCreateRenderer(
   options: RendererOptions<Node, Element>,
   createHydrationFns: typeof createHydrationFunctions
 ): HydrationRenderer
 
-// implementation
+// implementation 执行
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions
 ): any {
+  // 编译时功能标志检查
   // compile-time feature flags check
   if (__ESM_BUNDLER__ && !__TEST__) {
     initFeatureFlags()
@@ -348,6 +365,8 @@ function baseCreateRenderer(
     insertStaticContent: hostInsertStaticContent
   } = options
 
+  // 注意：这个闭包内的函数应该使用`const xxx = () => {}`
+  // 样式以防止被缩小器内联。
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
   const patch: PatchFn = (
