@@ -45,7 +45,7 @@ export const remove = <T>(arr: T[], el: T) => {
 
 const hasOwnProperty = Object.prototype.hasOwnProperty
 /**
- * 指示对象是否具有指定的属性（也就是，是否有指定的键）。忽略不可枚举属性和原型链属性。
+ * 指示对象是否具有指定的属性（也就是，是否有指定的键） 。忽略不可枚举属性和原型链属性。
  * */
 export const hasOwn = (
   val: object,
