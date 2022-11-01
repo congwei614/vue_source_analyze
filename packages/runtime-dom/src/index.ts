@@ -84,17 +84,23 @@ export const createApp = ((...args) => {
   const { mount } = app
   // 重写 mount 方法
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
+    // 标准化容器
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
 
     const component = app._component
+    // 如组件对象没有定义 render 函数和 template 模板，则取容器的 innerHTML 作为组件模板内容
     if (!isFunction(component) && !component.render && !component.template) {
+      // __不安全__
+      // 原因：可能在 in-DOM 模板中执行 JS 表达式。
+      // 用户必须确保 in-DOM 模板是可信的。
+      // 如果它是由服务器渲染，模板不应包含任何用户数据。
       // __UNSAFE__
       // Reason: potential execution of JS expressions in in-DOM template.
       // The user must make sure the in-DOM template is trusted. If it's
       // rendered by the server, the template should not contain any user data.
       component.template = container.innerHTML
-      // 2.x compat check
+      // 2.x compat check 2.x 兼容性检查
       if (__COMPAT__ && __DEV__) {
         for (let i = 0; i < container.attributes.length; i++) {
           const attr = container.attributes[i]
@@ -109,6 +115,7 @@ export const createApp = ((...args) => {
       }
     }
 
+    // 挂载前清空容器内容
     // clear content before mounting
     container.innerHTML = ''
     const proxy = mount(container, false, container instanceof SVGElement)
