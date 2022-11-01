@@ -184,7 +184,7 @@ function createConfig(format, output, plugins = []) {
           require('@rollup/plugin-node-resolve').nodeResolve()
         ]
       : []
-
+  output.sourcemap = true // 新增，开启SourceMap
   return {
     input: resolve(entryFile),
     // Global and Browser ESM builds inlines everything so that they can be

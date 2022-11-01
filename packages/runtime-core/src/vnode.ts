@@ -444,11 +444,13 @@ function createBaseVNode(
 
   if (needFullChildrenNormalization) {
     normalizeChildren(vnode, children)
+    // suspense子代标准化
     // normalize suspense children
     if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
       ;(type as typeof SuspenseImpl).normalize(vnode)
     }
   } else if (children) {
+    // 编译的元素 vnode - 如果传递了子元素，则只有可能的类型是字符串或数组。
     // compiled element vnode - if children is passed, only possible types are
     // string or Array.
     vnode.shapeFlag |= isString(children)
@@ -461,18 +463,24 @@ function createBaseVNode(
     warn(`VNode created with invalid key (NaN). VNode type:`, vnode.type)
   }
 
+  // 追踪 Block tree
   // track vnode for block tree
   if (
     isBlockTreeEnabled > 0 &&
+    // 避免Block tree追踪只身
     // avoid a block node from tracking itself
     !isBlockNode &&
+    // 存在当前父块
     // has current parent block
     currentBlock &&
+    // 补丁标志的存在表明该节点需要修补更新。
+    // 组件节点也应该总是被修补，因为即使组件不需要更新，它需要将实例持久化到下一个 vnode 以便以后可以正确卸载。
     // presence of a patch flag indicates this node needs patching on updates.
     // component nodes also should always be patched, because even if the
     // component doesn't need to update, it needs to persist the instance on to
     // the next vnode so that it can be properly unmounted later.
     (vnode.patchFlag > 0 || shapeFlag & ShapeFlags.COMPONENT) &&
+    // EVENTS 标志仅用于hydration，如果它是唯一的标志，则由于处理程序缓存，不应将 vnode 视为动态的。
     // the EVENTS flag is only for hydration and if it is the only flag, the
     // vnode should not be considered dynamic due to handler caching.
     vnode.patchFlag !== PatchFlags.HYDRATE_EVENTS
@@ -510,6 +518,9 @@ function _createVNode(
   }
 
   if (isVNode(type)) {
+    // createVNode 接收已经存在的 vnode。 这发生在以下情况下
+    // <component :is="vnode"/>
+    // #2078 确保在克隆期间合并引用而不是覆盖它
     // createVNode receiving an existing vnode. This happens in cases like
     // <component :is="vnode"/>
     // #2078 make sure to merge refs during the clone instead of overwriting it
@@ -527,17 +538,17 @@ function _createVNode(
     cloned.patchFlag |= PatchFlags.BAIL
     return cloned
   }
-
+  // 类组件规范化。
   // class component normalization.
   if (isClassComponent(type)) {
     type = type.__vccOpts
   }
-
+  // 2.x 异步/功能组件兼容
   // 2.x async/functional component compat
   if (__COMPAT__) {
     type = convertLegacyComponent(type, currentRenderingInstance)
   }
-
+  // 类和样式规范化。
   // class & style normalization.
   if (props) {
     // for reactive or proxy objects, we need to clone it to enable mutation.
@@ -556,6 +567,7 @@ function _createVNode(
     }
   }
 
+  // 将 vnode 类型信息编码为位图
   // encode the vnode type information into a bitmap
   const shapeFlag = isString(type)
     ? ShapeFlags.ELEMENT

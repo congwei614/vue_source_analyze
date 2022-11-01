@@ -1,3 +1,19 @@
+/**
+ * 
+|         *upperCase*         | *flag* |   *notes*    |         *lowerCase*         |
+| :-------------------------: | :----: | :----------: | :-------------------------: |
+|           ELEMENT           |   1    |     元素     |           element           |
+|    FUNCTIONAL_COMPONENT     |   2    |   函数组件   |    functional_component     |
+|     STATEFUL_COMPONENT      |   4    |   状态组件   |     stateful_component      |
+|        TEXT_CHILDREN        |   8    |   文本节点   |        text_children        |
+|       ARRAY_CHILDREN        |   16   |   数组节点   |       array_children        |
+|       SLOTS_CHILDREN        |   32   |   solt节点   |       slots_children        |
+|          TELEPORT           |   64   | teleport组件 |          teleport           |
+|          SUSPENSE           |  128   | suspense组件 |          suspense           |
+| COMPONENT_SHOULD_KEEP_ALIVE |  256   |   缓存组件   | component_should_keep_alive |
+|    COMPONENT_KEPT_ALIVE     |  521   |   保持活力   |    component_kept_alive     |
+|          COMPONENT          |  2\|4  |     组件     |          component          |
+ */
 export const enum ShapeFlags {
   ELEMENT = 1,
   FUNCTIONAL_COMPONENT = 1 << 1,

@@ -206,6 +206,20 @@ function injectCompilerOptionsCheck(app: App) {
   }
 }
 
+/**
+ * 如果是string，使用querySelector获取DOM元素
+ *
+ * 如果是ShadowRoot并且内部不能修改，DEV会提示mount到ShadowRoot会导致不可预知的错误
+ *
+ * 否则返回传入容器
+ *
+ * ShadowDOM可以使一些DOM节点在特定范围内可见，而在网页DOM树中不可见，但是网页渲染的结果包含了这些节点。
+ *
+ * Shadow.mode 为 `closed`表示内部不可修改
+ *
+ * 例如 Video 标签内部的样式为ShadowRoot
+ */
+
 function normalizeContainer(
   container: Element | ShadowRoot | string
 ): Element | null {
