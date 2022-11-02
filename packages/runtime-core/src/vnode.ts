@@ -346,12 +346,16 @@ export function isVNode(value: any): value is VNode {
   return value ? value.__v_isVNode === true : false
 }
 
+/**
+ * 判断VNode是否同一类型
+ */
 export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
   if (
     __DEV__ &&
     n2.shapeFlag & ShapeFlags.COMPONENT &&
     hmrDirtyComponents.has(n2.type as ConcreteComponent)
   ) {
+    // HMR only: 如果组件已被热更新，则强制重新加载。
     // HMR only: if the component has been hot-updated, force a reload.
     return false
   }

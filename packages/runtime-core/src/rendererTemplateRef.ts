@@ -18,6 +18,8 @@ import { SchedulerJob } from './scheduler'
 import { queuePostRenderEffect } from './renderer'
 
 /**
+ * 处理模板引用的函数
+ *
  * Function for handling a template ref
  */
 export function setRef(

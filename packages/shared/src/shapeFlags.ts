@@ -1,3 +1,8 @@
+/*
+ * @Author: Mr.Cong Wei
+ * @Date: 2022-10-31 20:48:25
+ * @LastEditTime: 2022-11-02 20:30:55
+ */
 /**
  * 
 |         *upperCase*         | *flag* |   *notes*    |         *lowerCase*         |
@@ -12,7 +17,7 @@
 |          SUSPENSE           |  128   | suspense组件 |          suspense           |
 | COMPONENT_SHOULD_KEEP_ALIVE |  256   |   缓存组件   | component_should_keep_alive |
 |    COMPONENT_KEPT_ALIVE     |  521   |   保持活力   |    component_kept_alive     |
-|          COMPONENT          |  2\|4  |     组件     |          component          |
+|          COMPONENT          |  2|4 = 6  |     组件     |          component          |
  */
 export const enum ShapeFlags {
   ELEMENT = 1,

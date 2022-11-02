@@ -384,6 +384,7 @@ function baseCreateRenderer(
       return
     }
 
+    // 修补和不同类型，卸载旧树
     // patching & not same type, unmount old tree
     if (n1 && !isSameVNodeType(n1, n2)) {
       anchor = getNextHostNode(n1)
@@ -391,6 +392,7 @@ function baseCreateRenderer(
       n1 = null
     }
 
+    // 是否进入差异算法，跳出优化算法
     if (n2.patchFlag === PatchFlags.BAIL) {
       optimized = false
       n2.dynamicChildren = null
@@ -2321,9 +2323,11 @@ function baseCreateRenderer(
   }
 
   const getNextHostNode: NextFn = vnode => {
+    // 如果是函数组件或状态组件
     if (vnode.shapeFlag & ShapeFlags.COMPONENT) {
       return getNextHostNode(vnode.component!.subTree)
     }
+    // 如果是SUSPENSE组件
     if (__FEATURE_SUSPENSE__ && vnode.shapeFlag & ShapeFlags.SUSPENSE) {
       return vnode.suspense!.next()
     }
