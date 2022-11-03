@@ -406,6 +406,9 @@ function baseCreateRenderer(
       case Comment:
         processCommentNode(n1, n2, container, anchor)
         break
+
+      // 静态节点， 这个应该是在ssr的时候用到的
+      // 因为只有在ssr的时候才会常见static类型的vnode
       case Static:
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, isSVG)
@@ -426,6 +429,8 @@ function baseCreateRenderer(
           optimized
         )
         break
+      // 去除了特殊情况节点的渲染，就是正常的vnode 渲染
+      // 如果是个节点类型
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
           processElement(
@@ -440,6 +445,10 @@ function baseCreateRenderer(
             optimized
           )
         } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          // 第一次执行挂载时候也被当做组件类型初始化的
+          // vue3改版之后直接用配置去常见对象去创建组件vnode
+          // 这个配置需要用一个函数去拿，也是动态加载的
+          // 传入名字在运行时去去通过resolvecompinent 来拿
           processComponent(
             n1,
             n2,
@@ -488,6 +497,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 文本内容的处理
   const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
     if (n1 == null) {
       hostInsert(
@@ -503,6 +513,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 注释节点处理
   const processCommentNode: ProcessTextOrCommentFn = (
     n1,
     n2,
@@ -521,6 +532,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 静态节点是由于在编译的时候节点被分为静态和动态，如此依赖为了减少不不要的渲染来使用静态字符串的方式解决
   const mountStaticNode = (
     n2: VNode,
     container: RendererElement,
@@ -542,6 +554,7 @@ function baseCreateRenderer(
   /**
    * Dev / HMR only
    */
+  // 静态节点的的patch的处理，暂时不知道干啥的
   const patchStaticNode = (
     n1: VNode,
     n2: VNode,
@@ -639,7 +652,7 @@ function baseCreateRenderer(
     let el: RendererElement
     let vnodeHook: VNodeHook | undefined | null
     const { type, props, shapeFlag, transition, dirs } = vnode
-
+    // 创建DOM元素
     el = vnode.el = hostCreateElement(
       vnode.type as string,
       isSVG,
@@ -647,10 +660,13 @@ function baseCreateRenderer(
       props
     )
 
+    // 首先挂载子元素，因为某些props可能依赖于已经渲染的子内容，例如 `<select value>`
     // mount children first, since some props may rely on child content
     // being already rendered, e.g. `<select value>`
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      //  如果子节点是个文本节点，直接给挂到当前节点上去
       hostSetElementText(el, vnode.children as string)
+      // 处理子节点是数组的情况
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
       mountChildren(
         vnode.children as VNodeArrayChildren,
@@ -667,6 +683,7 @@ function baseCreateRenderer(
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'created')
     }
+    // 处理 props，比如 class、style、event 等属性
     // props
     if (props) {
       for (const key in props) {
@@ -685,6 +702,11 @@ function baseCreateRenderer(
         }
       }
       /**
+       * 在 DOM 元素上设置值的特殊情况：
+       * 它可以是顺序敏感的（例如应该设置 *after* min/max, #2325, #4024）
+       * 需要强制（#1471）#2353 建议添加另一个渲染器选项来配置它，但是属性影响是如此有限，
+       * 因此值得在此处对其进行特殊封装以降低复杂性。 （特殊大小写也不应该影响非 DOM 渲染器）
+       *
        * Special case for setting value on DOM elements:
        * - it can be order-sensitive (e.g. should be set *after* min/max, #2325, #4024)
        * - it needs to be forced (#1471)
@@ -716,6 +738,9 @@ function baseCreateRenderer(
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
     }
+    // #1583 对于inside suspense + suspense 未完成的情况，当suspense解决时应该调用enter hook
+    // #1689 对于 inside suspense + suspense 已完成的情况，只需调用它
+
     // #1583 For inside suspense + suspense not resolved case, enter hook should call when suspense resolved
     // #1689 For inside suspense + suspense resolved case, just call it
     const needCallTransitionHooks =
@@ -725,6 +750,7 @@ function baseCreateRenderer(
     if (needCallTransitionHooks) {
       transition!.beforeEnter(el)
     }
+    // 把创建的 DOM 元素节点挂载到 container 上
     hostInsert(el, container, anchor)
     if (
       (vnodeHook = props && props.onVnodeMounted) ||
@@ -739,6 +765,13 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 设置ScopeID
+   *
+   * 生成类似css作用域的id data-v-[ScopeID]
+   *
+   * e.g. data-v-3bf67c32
+   *  */
   const setScopeId = (
     el: RendererElement,
     vnode: VNode,
@@ -1205,10 +1238,17 @@ function baseCreateRenderer(
     isSVG,
     optimized
   ) => {
+    // 2.x compat 可能会在实际之前预先创建组件实例
+    // 安装
     // 2.x compat may pre-create the component instance before actually
     // mounting
+
+    //如果有组件实例那么就取当前组件实例
     const compatMountInstance =
       __COMPAT__ && initialVNode.isCompatRoot && initialVNode.component
+
+    // 保存一下组件的实例 如果找不到就创建一个
+    // 在创建的时候，就创建了EffectScope 确定了依赖追踪
     const instance: ComponentInternalInstance =
       compatMountInstance ||
       (initialVNode.component = createComponentInstance(
@@ -1226,27 +1266,35 @@ function baseCreateRenderer(
       startMeasure(instance, `mount`)
     }
 
+    // 为 keepAlive 注入渲染器内部
     // inject renderer internals for keepAlive
     if (isKeepAlive(initialVNode)) {
       ;(instance.ctx as KeepAliveContext).renderer = internals
     }
 
+    // 解析设置上下文的Props和Slots
     // resolve props and slots for setup context
     if (!(__COMPAT__ && compatMountInstance)) {
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
+      // 执行setup
+      // 所以当setup 执行的时候dom 还没生成
       setupComponent(instance)
       if (__DEV__) {
         endMeasure(instance, `init`)
       }
     }
 
+    // setup() 是异步的。 该组件依赖异步逻辑来解决
+    // 在继续之前
     // setup() is async. This component relies on async logic to be resolved
     // before proceeding
     if (__FEATURE_SUSPENSE__ && instance.asyncDep) {
       parentSuspense && parentSuspense.registerDep(instance, setupRenderEffect)
 
+      // 如果这不是hydration，则给它一个占位符
+      // TODO 处理自定义回退
       // Give it a placeholder if this is not hydration
       // TODO handle self-defined fallback
       if (!initialVNode.el) {
@@ -1256,6 +1304,7 @@ function baseCreateRenderer(
       return
     }
 
+    // 这一块是重要逻辑，依赖收集
     setupRenderEffect(
       instance,
       initialVNode,
@@ -1315,25 +1364,32 @@ function baseCreateRenderer(
     isSVG,
     optimized
   ) => {
+    // 包装函数
     const componentUpdateFn = () => {
+      // 初始化渲染组件
       if (!instance.isMounted) {
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
         const { bm, m, parent } = instance
+        // 是否是异步组件
         const isAsyncWrapperVNode = isAsyncWrapper(initialVNode)
 
+        // 不禁用递归
         toggleRecurse(instance, false)
+        // beforeMount 初始化的钩子
         // beforeMount hook
         if (bm) {
           invokeArrayFns(bm)
         }
         // onVnodeBeforeMount
+        // 不常用，处理节点挂载钱在函数执行的时候传入的vnode 的钩子，一般在编译的情况下无法见到
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeBeforeMount)
         ) {
           invokeVNodeHook(vnodeHook, parent, initialVNode)
         }
+        // 兼容vue2 的hook:beforeMount
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1341,13 +1397,15 @@ function baseCreateRenderer(
           instance.emit('hook:beforeMount')
         }
         toggleRecurse(instance, true)
-
+        // 服务端渲染使用
         if (el && hydrateNode) {
+          // vnode采用了主机节点，而不是挂载
           // vnode has adopted host node - perform hydration instead of mount.
           const hydrateSubTree = () => {
             if (__DEV__) {
               startMeasure(instance, `render`)
             }
+            // 当前方法执行完成，依赖收集就结束了
             instance.subTree = renderComponentRoot(instance)
             if (__DEV__) {
               endMeasure(instance, `render`)
@@ -1355,6 +1413,7 @@ function baseCreateRenderer(
             if (__DEV__) {
               startMeasure(instance, `hydrate`)
             }
+            // 服务端的patch
             hydrateNode!(
               el as Node,
               instance.subTree,
@@ -1367,6 +1426,7 @@ function baseCreateRenderer(
             }
           }
 
+          //如果是异步组件
           if (isAsyncWrapperVNode) {
             ;(initialVNode.type as ComponentOptions).__asyncLoader!().then(
               // note: we are moving the render call into an async callback,
@@ -1382,6 +1442,9 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
+          // 生成vnode 也就是执行render 的地方，同样的里面也用try catch包着，防止报错
+          // 执行render 的时候开始依赖收集
+          // 当前方法执行完成，依赖收集就结束了
           const subTree = (instance.subTree = renderComponentRoot(instance))
           if (__DEV__) {
             endMeasure(instance, `render`)
@@ -1389,6 +1452,9 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `patch`)
           }
+          // 主要执行patch，这是初始化的时候执行的
+          // 第一次执行，依赖收集开始了
+          // 将渲染vnode patch到dom视图上
           patch(
             null,
             subTree,
@@ -1403,10 +1469,14 @@ function baseCreateRenderer(
           }
           initialVNode.el = subTree.el
         }
+        // mounted 是在更新之后
+        // queuePostRenderEffect 他实际执行的是就是queuePostFlushCb
+        // 就会给他放在dom跟新之后的队列里
         // mounted hook
         if (m) {
           queuePostRenderEffect(m, parentSuspense)
         }
+        // vnode的钩子
         // onVnodeMounted
         if (
           !isAsyncWrapperVNode &&
@@ -1418,6 +1488,7 @@ function baseCreateRenderer(
             parentSuspense
           )
         }
+        // 兼容vue2的的mounted 钩子
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1428,6 +1499,10 @@ function baseCreateRenderer(
           )
         }
 
+        //激活钩子，保持根系活力。
+        //#1742激活的钩子必须在第一次渲染后访问
+        //因为钩子可能会被一个孩子注射，所以保持生命
+        // keep-alive 钩子
         // activated hook for keep-alive roots.
         // #1742 activated hook must be accessed after first render
         // since the hook may be injected by a child keep-alive
@@ -1454,9 +1529,12 @@ function baseCreateRenderer(
           devtoolsComponentAdded(instance)
         }
 
+        // #2458: 遵守仅挂载对象参数以防止内存泄漏
         // #2458: deference mount-only object parameters to prevent memleaks
         initialVNode = container = anchor = null as any
       } else {
+        // 组件更新
+        // 经过测试在结构赋值的过程中next如果初始值没有的情况下，那么如果直接给next赋值，他也不会有instance 在更新的时候被放在闭包里
         // updateComponent
         // This is triggered by mutation of component's own state (next: null)
         // OR parent calling processComponent (next: VNode)
@@ -1467,12 +1545,17 @@ function baseCreateRenderer(
           pushWarningContext(next || instance.vnode)
         }
 
+        //在生命周期前的钩子期间不允许组件效果递归。
         // Disallow component effect recursion during pre-lifecycle hooks.
         toggleRecurse(instance, false)
+        // 也就是想执行这一步必须在初始的时候instance.next有值
         if (next) {
+          //也就是这一个if走的就是updatecompent的更新方式
           next.el = vnode.el
+          // 更新了props等内容
           updateComponentPreRender(instance, next, optimized)
         } else {
+          // 也就是走响应式的的更新一定是没有next的
           next = vnode
         }
 
@@ -1506,6 +1589,8 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `patch`)
         }
+        // 这是更新的时候执行的patch
+        //这是在更新的时候可以用来触发组件更新，如果props变了，触发当前页面的dom 更新
         patch(
           prevTree,
           nextTree,
@@ -1522,6 +1607,8 @@ function baseCreateRenderer(
         }
         next.el = nextTree.el
         if (originNext === null) {
+          //自触发更新。如果是HOC，请更新父组件vnode el。
+          // HOC由父实例的子树指向表示到子组件的vnode
           // self-triggered update. In case of HOC, update parent component
           // vnode el. HOC is indicated by parent instance's subTree pointing
           // to child component's vnode
@@ -1529,6 +1616,7 @@ function baseCreateRenderer(
         }
         // updated hook
         if (u) {
+          // 这个函数会执行queuePostFlushCb然后将订阅函数放入（任务）队列
           queuePostRenderEffect(u, parentSuspense)
         }
         // onVnodeUpdated
@@ -1558,15 +1646,19 @@ function baseCreateRenderer(
       }
     }
 
+    // 为渲染创建反应效果
+    // 也就是2版本的watcher 每个组件都被包装为一个effect
     // create reactive effect for rendering
     const effect = (instance.effect = new ReactiveEffect(
       componentUpdateFn,
       () => queueJob(update),
-      instance.scope // track it in component's effect scope
+      instance.scope // track it in component's effect scope // 在组件的效果范围内跟踪它
     ))
-
+    // //watcher 中的更新函数
     const update: SchedulerJob = (instance.update = () => effect.run())
     update.id = instance.uid
+    // 允许递归
+    // 组件渲染效果应该允许递归更新
     // allowRecurse
     // #1801, #2043 component render effects should allow recursive updates
     toggleRecurse(instance, true)
@@ -1580,7 +1672,7 @@ function baseCreateRenderer(
         : void 0
       update.ownerInstance = instance
     }
-
+    //先执行一次 也就是执行componentUpdateFn =>  执行render 函数
     update()
   }
 

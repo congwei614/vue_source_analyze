@@ -134,6 +134,7 @@ export function invokeDirectiveHook(
       hook = mapCompatDirectiveHook(name, binding.dir, instance)
     }
     if (hook) {
+      // 禁用所有生命周期钩子内的跟踪，因为它们可能被称为内部效果。
       // disable tracking inside all lifecycle hooks
       // since they can potentially be called inside effects.
       pauseTracking()

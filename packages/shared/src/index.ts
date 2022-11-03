@@ -168,6 +168,9 @@ export const toHandlerKey = cacheStringFunction((str: string) =>
 export const hasChanged = (value: any, oldValue: any): boolean =>
   !Object.is(value, oldValue)
 
+/**
+ * 循环调用数组中的函数
+ */
 export const invokeArrayFns = (fns: Function[], arg?: any) => {
   for (let i = 0; i < fns.length; i++) {
     fns[i](arg)

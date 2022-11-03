@@ -1,3 +1,8 @@
+/*
+ * @Author: Mr.Cong Wei
+ * @Date: 2022-10-31 20:48:25
+ * @LastEditTime: 2022-11-03 23:25:20
+ */
 import { RendererOptions } from '@vue/runtime-core'
 
 export const svgNS = 'http://www.w3.org/2000/svg'
@@ -8,6 +13,7 @@ const templateContainer = doc && /*#__PURE__*/ doc.createElement('template')
 
 export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
   insert: (child, parent, anchor) => {
+    // 文档提示：必须显式传入一个Node或者null，否则不同浏览器会出现不同表现
     parent.insertBefore(child, anchor || null)
   },
 

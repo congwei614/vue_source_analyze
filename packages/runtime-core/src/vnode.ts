@@ -754,6 +754,7 @@ export function normalizeVNode(child: VNodeChild): VNode {
   }
 }
 
+// 模板编译的渲染 fns 的优化规范化
 // optimized normalization for template-compiled render fns
 export function cloneIfMounted(child: VNode): VNode {
   return (child.el === null && child.patchFlag !== PatchFlags.HOISTED) ||

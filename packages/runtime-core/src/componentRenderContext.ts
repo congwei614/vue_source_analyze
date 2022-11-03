@@ -10,6 +10,8 @@ export let currentRenderingInstance: ComponentInternalInstance | null = null
 export let currentScopeId: string | null = null
 
 /**
+ * 注意：渲染调用可能是嵌套的。 该函数返回父渲染实例（如果存在），应该在渲染完成后恢复：
+ *
  * Note: rendering calls maybe nested. The function returns the parent rendering
  * instance if present, which should be restored after the render is done:
  *

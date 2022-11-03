@@ -1,5 +1,11 @@
+/*
+ * @Author: Mr.Cong Wei
+ * @Date: 2022-10-31 20:48:24
+ * @LastEditTime: 2022-11-03 21:01:38
+ */
 /// <reference types="vite/client" />
 
+// 全局编译时常量
 // Global compile-time constants
 declare var __DEV__: boolean
 declare var __TEST__: boolean
@@ -13,11 +19,13 @@ declare var __COMMIT__: string
 declare var __VERSION__: string
 declare var __COMPAT__: boolean
 
+// 功能标志
 // Feature flags
 declare var __FEATURE_OPTIONS_API__: boolean
 declare var __FEATURE_PROD_DEVTOOLS__: boolean
 declare var __FEATURE_SUSPENSE__: boolean
 
+// 用于测试
 // for tests
 declare namespace jest {
   interface Matchers<R, T> {
