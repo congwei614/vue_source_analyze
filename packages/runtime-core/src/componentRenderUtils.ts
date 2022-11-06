@@ -40,6 +40,9 @@ export function markAttrsAccessed() {
 
 type SetRootFn = ((root: VNode) => void) | undefined
 
+/**
+ * 生成vonde 的地方，并且这是组件vnode 去生成vnode的地方
+ */
 export function renderComponentRoot(
   instance: ComponentInternalInstance
 ): VNode {
@@ -70,6 +73,7 @@ export function renderComponentRoot(
 
   try {
     if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+      // withProxy 是具有不同 `has` 陷阱的代理，仅适用于使用 `with` 块运行时编译的渲染函数。
       // withProxy is a proxy with a different `has` trap only for
       // runtime-compiled render functions using `with` block.
       const proxyToUse = withProxy || proxy
@@ -88,6 +92,7 @@ export function renderComponentRoot(
     } else {
       // functional
       const render = Component as FunctionalComponent
+      // 在开发中，如果可选道具（attrs === props），则标记访问的 attrs
       // in dev, mark attrs accessed if optional props (attrs === props)
       if (__DEV__ && attrs === props) {
         markAttrsAccessed()
@@ -329,6 +334,8 @@ export function shouldUpdateComponent(
   const { props: nextProps, children: nextChildren, patchFlag } = nextVNode
   const emits = component!.emitsOptions
 
+  // 父组件的渲染函数被热更新。
+  // 由于这可能有导致子组件的插槽内容发生了变化，我们需要强迫孩子也更新。
   // Parent component's render function was hot-updated. Since this may have
   // caused the child component's slots content to have changed, we need to
   // force the child to update as well.
@@ -336,6 +343,7 @@ export function shouldUpdateComponent(
     return true
   }
 
+  // 对组件 vnode 上的运行时指令或转换强制子更新。
   // force child update for runtime directive or transition on component vnode.
   if (nextVNode.dirs || nextVNode.transition) {
     return true
@@ -343,6 +351,8 @@ export function shouldUpdateComponent(
 
   if (optimized && patchFlag >= 0) {
     if (patchFlag & PatchFlags.DYNAMIC_SLOTS) {
+      // 引用可能已更改的值的插槽内容，
+      // e.g.  v-for
       // slot content that references values that might have changed,
       // e.g. in a v-for
       return true
@@ -351,6 +361,7 @@ export function shouldUpdateComponent(
       if (!prevProps) {
         return !!nextProps
       }
+      // 此标志的存在表示props始终为非空
       // presence of this flag indicates props are always non-null
       return hasPropsChanged(prevProps, nextProps!, emits)
     } else if (patchFlag & PatchFlags.PROPS) {
@@ -366,6 +377,7 @@ export function shouldUpdateComponent(
       }
     }
   } else {
+    // 此路径仅由手动编写的渲染函数采用,因此任何孩子的存在都会导致强制更新
     // this path is only taken by manually written render functions
     // so presence of any children leads to a forced update
     if (prevChildren || nextChildren) {
