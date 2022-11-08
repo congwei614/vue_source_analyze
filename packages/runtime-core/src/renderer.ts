@@ -1907,6 +1907,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 可以全键或混合
   // can be all-keyed or mixed
   const patchKeyedChildren = (
     c1: VNode[],
@@ -1921,10 +1922,10 @@ function baseCreateRenderer(
   ) => {
     let i = 0
     const l2 = c2.length
-    let e1 = c1.length - 1 // prev ending index
-    let e2 = l2 - 1 // next ending index
+    let e1 = c1.length - 1 // 旧节点结束索引 prev ending index
+    let e2 = l2 - 1 // 新节点结束索引 next ending index
 
-    // 1. sync from start
+    // 1. 从头同步 sync from start
     // (a b) c
     // (a b) d e
     while (i <= e1 && i <= e2) {
@@ -1950,7 +1951,7 @@ function baseCreateRenderer(
       i++
     }
 
-    // 2. sync from end
+    // 2. 从尾同步 sync from end
     // a (b c)
     // d e (b c)
     while (i <= e1 && i <= e2) {
@@ -1977,16 +1978,22 @@ function baseCreateRenderer(
       e2--
     }
 
-    // 3. common sequence + mount
+    // 3. 添加新元素 common sequence + mount
     // (a b)
     // (a b) c
     // i = 2, e1 = 1, e2 = 2
     // (a b)
     // c (a b)
     // i = 0, e1 = -1, e2 = 0
+    // 旧节点处于尾端之后
     if (i > e1) {
+      // 新节点还有剩余
       if (i <= e2) {
+        // 要添加元素的起始位置(不是指添加的元素)
         const nextPos = e2 + 1
+        // 要添加元素的参考位置，
+        // 如果添加的元素不是最后的元素，参考位置就是添加的第一个元素。
+        // 如果是最后元素，参考位置是父参考元素。
         const anchor = nextPos < l2 ? (c2[nextPos] as VNode).el : parentAnchor
         while (i <= e2) {
           patch(
@@ -2007,28 +2014,31 @@ function baseCreateRenderer(
       }
     }
 
-    // 4. common sequence + unmount
+    // 4. 删除旧元素 common sequence + unmount
     // (a b) c
     // (a b)
     // i = 2, e1 = 2, e2 = 1
     // a (b c)
     // (b c)
     // i = 0, e1 = 0, e2 = -1
+    // 新节点处于尾端之后
     else if (i > e2) {
+      // 旧节点还有剩余
       while (i <= e1) {
         unmount(c1[i], parentComponent, parentSuspense, true)
         i++
       }
     }
 
-    // 5. unknown sequence
+    // 5. 未知序列 unknown sequence
     // [i ... e1 + 1]: a b [c d e] f g
     // [i ... e2 + 1]: a b [e d c h] f g
     // i = 2, e1 = 4, e2 = 5
     else {
-      const s1 = i // prev starting index
-      const s2 = i // next starting index
+      const s1 = i // 旧节点未知序列开始索引 prev starting index
+      const s2 = i // 新节点未知序列开始索引 next starting index
 
+      // 为新节点构建Map图{新节点某项Key,该项索引(相对于未知序列)}
       // 5.1 build key:index map for newChildren
       const keyToNewIndexMap: Map<string | number | symbol, number> = new Map()
       for (i = s2; i <= e2; i++) {
@@ -2047,33 +2057,42 @@ function baseCreateRenderer(
         }
       }
 
+      // 循环遍历未知序列旧节点并更新和删除节点
       // 5.2 loop through old children left to be patched and try to patch
       // matching nodes & remove nodes that are no longer present
       let j
-      let patched = 0
-      const toBePatched = e2 - s2 + 1
-      let moved = false
+      let patched = 0 // 新未知子序列已更新节点的数量
+      const toBePatched = e2 - s2 + 1 // 新未知子序列待更新节点的数量，等于新未知子序列的长度
+      let moved = false // 是否存在要移动的节点
+      // 用于跟踪判断是否有节点移动
       // used to track whether any node has moved
       let maxNewIndexSoFar = 0
+      // 这个数组存储新子序列中的元素在旧子序列节点的索引，用于确定最长递增子序列。
       // works as Map<newIndex, oldIndex>
       // Note that oldIndex is offset by +1
       // and oldIndex = 0 is a special value indicating the new node has
       // no corresponding old node.
       // used for determining longest stable subsequence
       const newIndexToOldIndexMap = new Array(toBePatched)
+      // 初始化数组，每个元素的值都是 0
+      // 0 是一个特殊的值，如果遍历完了仍有元素的值为 0，则说明这个新节点没有对应的旧节点
       for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
 
+      // 正序遍历旧子序列
       for (i = s1; i <= e1; i++) {
         const prevChild = c1[i]
         if (patched >= toBePatched) {
+          // 所有新的子序列节点都已经更新，剩余的节点删除
           // all new children have been patched so this can only be a removal
           unmount(prevChild, parentComponent, parentSuspense, true)
           continue
         }
+        // 查找旧子序列中的节点在新子序列中的索引
         let newIndex
         if (prevChild.key != null) {
           newIndex = keyToNewIndexMap.get(prevChild.key)
         } else {
+          // 无key节点，尝试定位相同类型的key节点
           // key-less node, try to locate a key-less node of the same type
           for (j = s2; j <= e2; j++) {
             if (
@@ -2085,15 +2104,20 @@ function baseCreateRenderer(
             }
           }
         }
+        // 找不到说明旧子序列已经不存在于新子序列中，则删除该节点
         if (newIndex === undefined) {
           unmount(prevChild, parentComponent, parentSuspense, true)
         } else {
+          // 更新新子序列中的元素在旧子序列中的索引，
+          // 这里加 1 偏移，是为了避免 i 为 0 的特殊情况，影响对后续最长递增子序列的求解
           newIndexToOldIndexMap[newIndex - s2] = i + 1
+          // maxNewIndexSoFar 始终存储的是上次求值的 newIndex，如果不是一直递增，则说明有移动
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex
           } else {
             moved = true
           }
+          // 更新新旧子序列中匹配的节点
           patch(
             prevChild,
             c2[newIndex] as VNode,
@@ -2109,16 +2133,19 @@ function baseCreateRenderer(
         }
       }
 
-      // 5.3 move and mount
+      // 5.3 移动和挂载新节点 move and mount
+      // 仅当节点移动时生成最长递增子序列
       // generate longest stable subsequence only when nodes have moved
       const increasingNewIndexSequence = moved
         ? getSequence(newIndexToOldIndexMap)
         : EMPTY_ARR
       j = increasingNewIndexSequence.length - 1
+      //  倒序遍历以便我们可以使用最后更新的节点作为锚点
       // looping backwards so that we can use last patched node as anchor
       for (i = toBePatched - 1; i >= 0; i--) {
         const nextIndex = s2 + i
         const nextChild = c2[nextIndex] as VNode
+        // 锚点指向上一个更新的节点，如果 nextIndex 超过新子节点的长度，则指向 parentAnchor
         const anchor =
           nextIndex + 1 < l2 ? (c2[nextIndex + 1] as VNode).el : parentAnchor
         if (newIndexToOldIndexMap[i] === 0) {
@@ -2135,12 +2162,14 @@ function baseCreateRenderer(
             optimized
           )
         } else if (moved) {
+          //  没有最长递增子序列（reverse 的场景）或者当前的节点索引不在最长递增子序列中，需要移动
           // move if:
           // There is no stable subsequence (e.g. a reverse)
           // OR current node is not among the stable sequence
           if (j < 0 || i !== increasingNewIndexSequence[j]) {
             move(nextChild, container, anchor, MoveType.REORDER)
           } else {
+            // 倒序递增子序列
             j--
           }
         }
